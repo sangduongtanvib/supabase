@@ -9,13 +9,14 @@ import { useParams } from 'common'
 import { SQL_TEMPLATES } from 'components/interfaces/SQLEditor/SQLEditor.queries'
 import { createSqlSnippetSkeletonV2 } from 'components/interfaces/SQLEditor/SQLEditor.utils'
 import { useSendEventMutation } from 'data/telemetry/send-event-mutation'
-import { useCheckPermissions } from 'hooks/misc/useCheckPermissions'
-import { useSelectedOrganization } from 'hooks/misc/useSelectedOrganization'
+import { useAsyncCheckPermissions } from 'hooks/misc/useCheckPermissions'
+import { useSelectedOrganizationQuery } from 'hooks/misc/useSelectedOrganization'
+import { useSelectedProjectQuery } from 'hooks/misc/useSelectedProject'
 import { uuidv4 } from 'lib/helpers'
 import { useProfile } from 'lib/profile'
 import { useSqlEditorV2StateSnapshot } from 'state/sql-editor-v2'
 import { useTableEditorStateSnapshot } from 'state/table-editor'
-import { getTabsStore } from 'state/tabs'
+import { createTabId, useTabsStateSnapshot } from 'state/tabs'
 import {
   Button,
   cn,
@@ -26,7 +27,6 @@ import {
   TabsTrigger_Shadcn_,
 } from 'ui'
 import { useEditorType } from '../editors/EditorsLayout.hooks'
-import { useProjectContext } from '../ProjectLayout/ProjectContext'
 import { ActionCard } from './ActionCard'
 import { RecentItems } from './RecentItems'
 
@@ -34,19 +34,26 @@ export function NewTab() {
   const router = useRouter()
   const { ref } = useParams()
   const editor = useEditorType()
-  const snap = useTableEditorStateSnapshot()
   const { profile } = useProfile()
+  const { data: org } = useSelectedOrganizationQuery()
+  const { data: project } = useSelectedProjectQuery()
+
+  const snap = useTableEditorStateSnapshot()
+  const snapV2 = useSqlEditorV2StateSnapshot()
+  const tabs = useTabsStateSnapshot()
+
   const [templates] = partition(SQL_TEMPLATES, { type: 'template' })
   const [quickstarts] = partition(SQL_TEMPLATES, { type: 'quickstart' })
-  const { mutate: sendEvent } = useSendEventMutation()
-  const snapV2 = useSqlEditorV2StateSnapshot()
-  const { project } = useProjectContext()
-  const org = useSelectedOrganization()
 
-  const canCreateSQLSnippet = useCheckPermissions(PermissionAction.CREATE, 'user_content', {
-    resource: { type: 'sql', owner_id: profile?.id },
-    subject: { id: profile?.id },
-  })
+  const { mutate: sendEvent } = useSendEventMutation()
+  const { can: canCreateSQLSnippet } = useAsyncCheckPermissions(
+    PermissionAction.CREATE,
+    'user_content',
+    {
+      resource: { type: 'sql', owner_id: profile?.id },
+      subject: { id: profile?.id },
+    }
+  )
 
   const tableEditorActions = [
     {
@@ -92,16 +99,14 @@ export function NewTab() {
       snapV2.addSnippet({ projectRef: ref, snippet })
       snapV2.addNeedsSaving(snippet.id)
 
-      const store = getTabsStore(ref)
-      const tabId = `sql-${snippet.id}`
-      store.openTabs = [...store.openTabs, tabId]
-      store.tabsMap[tabId] = {
+      const tabId = createTabId('sql', { id: snippet.id })
+
+      tabs.addTab({
         id: tabId,
         type: 'sql',
         label: name,
         metadata: { sqlId: snippet.id },
-      }
-      store.activeTab = tabId
+      })
 
       router.push(`/project/${ref}/sql/${snippet.id}`)
     } catch (error: any) {

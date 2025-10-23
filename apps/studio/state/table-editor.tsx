@@ -1,7 +1,6 @@
 import type { PostgresColumn } from '@supabase/postgres-meta'
 import { PropsWithChildren, createContext, useContext, useRef } from 'react'
 import { proxy, useSnapshot } from 'valtio'
-import { proxySet } from 'valtio/utils'
 
 import type { SupaRow } from 'components/grid/types'
 import { ForeignKey } from 'components/interfaces/TableGridEditor/SidePanelEditor/ForeignKeySelector/ForeignKeySelector.types'
@@ -27,7 +26,7 @@ export type SidePanel =
       type: 'foreign-row-selector'
       foreignKey: ForeignKeyState
     }
-  | { type: 'csv-import' }
+  | { type: 'csv-import'; file?: File }
 
 export type ConfirmationDialog =
   | { type: 'table'; isDeleteWithCascade: boolean }
@@ -182,10 +181,10 @@ export const createTableEditorState = () => {
         sidePanel: { type: 'foreign-row-selector', foreignKey },
       }
     },
-    onImportData: () => {
+    onImportData: (file?: File) => {
       state.ui = {
         open: 'side-panel',
-        sidePanel: { type: 'csv-import' },
+        sidePanel: { type: 'csv-import', file },
       }
     },
 

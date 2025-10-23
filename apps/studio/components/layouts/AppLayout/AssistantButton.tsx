@@ -1,25 +1,37 @@
+import { LOCAL_STORAGE_KEYS } from 'common'
+import { ButtonTooltip } from 'components/ui/ButtonTooltip'
+import { useLocalStorageQuery } from 'hooks/misc/useLocalStorage'
 import { useAiAssistantStateSnapshot } from 'state/ai-assistant-state'
-import { useAppStateSnapshot } from 'state/app-state'
-import { AiIconAnimation, Button } from 'ui'
+import { AiIconAnimation, KeyboardShortcut } from 'ui'
 
-const AssistantButton = () => {
+export const AssistantButton = () => {
   const snap = useAiAssistantStateSnapshot()
-  const { setEditorPanel } = useAppStateSnapshot()
+  const [isAIAssistantHotkeyEnabled] = useLocalStorageQuery<boolean>(
+    LOCAL_STORAGE_KEYS.HOTKEY_AI_ASSISTANT,
+    true
+  )
 
   return (
-    <Button
+    <ButtonTooltip
       type="text"
       size="tiny"
       id="assistant-trigger"
-      className="h-full w-full rounded-none"
+      className="rounded-none w-[32px] h-[30px] flex items-center justify-center p-0 hover:bg-brand-400"
       onClick={() => {
         snap.toggleAssistant()
-        setEditorPanel({ open: false })
+      }}
+      tooltip={{
+        content: {
+          text: (
+            <div className="flex items-center gap-4">
+              <span>AI Assistant</span>
+              {isAIAssistantHotkeyEnabled && <KeyboardShortcut keys={['Meta', 'i']} />}
+            </div>
+          ),
+        },
       }}
     >
-      <AiIconAnimation allowHoverEffect size={20} />
-    </Button>
+      <AiIconAnimation allowHoverEffect={false} size={16} />
+    </ButtonTooltip>
   )
 }
-
-export default AssistantButton

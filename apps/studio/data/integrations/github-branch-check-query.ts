@@ -5,21 +5,21 @@ import { get, handleError } from 'data/fetchers'
 import type { ResponseError } from 'types'
 
 export type GithubBranchVariables = {
-  connectionId: number
+  repositoryId: number
   branchName: string
 }
 
 export async function checkGithubBranchValidity(
-  { connectionId, branchName }: GithubBranchVariables,
+  { repositoryId, branchName }: GithubBranchVariables,
   signal?: AbortSignal
 ) {
   const { data, error } = await get(
-    '/platform/integrations/github/branches/{connectionId}/{branchName}',
+    '/platform/integrations/github/repositories/{repository_id}/branches/{branch_name}',
     {
       params: {
         path: {
-          connectionId,
-          branchName,
+          repository_id: repositoryId,
+          branch_name: branchName,
         },
       },
       signal,
@@ -48,7 +48,7 @@ export const useCheckGithubBranchValidity = ({
       },
       async onError(data, variables, context) {
         if (onError === undefined) {
-          toast.error(`Failed to check Github branch: ${data.message}`)
+          toast.error(`Failed to check GitHub branch: ${data.message}`)
         } else {
           onError(data, variables, context)
         }
